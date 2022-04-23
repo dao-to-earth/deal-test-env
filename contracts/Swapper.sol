@@ -26,6 +26,8 @@ contract Swapper is ISwapper {
 
     mapping(address => mapping(address => uint256)) private _balances;
 
+    // function deals(uint256 dealId) public view returns(Deal)
+    
     function propose(
         address token1, 
         uint256 amount1, 
@@ -77,11 +79,8 @@ contract Swapper is ISwapper {
     function claim(uint256 id) external override returns (bool) {
         Deal storage deal = _deals[id];
         
-        // require caller is either account1 or account2
-        require((deal.account1 == msg.sender) || (deal.account2 == msg.sender), "Swapper: caller is not stakeholder");
-        
         // require vesting period has been reached
-        require(deal.startDate + deal.vesting >= block.number, "Swapper: vesting period is not over");
+        require(deal.startDate + deal.vesting <= block.number, "Swapper: vesting period is not over");
         
         // send tokens to both stakeholder
         IERC20(deal.token1).transfer(deal.account2, deal.amount1);

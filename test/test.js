@@ -5,7 +5,14 @@ describe("End to End", function () {
   let tokenA, tokenB, governanceA, governanceB, swapper;
   let deployer, holderA, holderB;
   let proposalId;
+  const amountA = 100;
+  const amountB = 30;
+  
+  //Governance proposal params
   let calldatas;
+  let targets;
+  let values;
+  let description;
 
   const ProposalState = {
     Pending: 0,
@@ -19,7 +26,7 @@ describe("End to End", function () {
   }
   
 
-  beforeEach(async function () {
+  before(async function () {
     /*
     ===========================================================
     ================= Deploy all contracts ====================
@@ -63,7 +70,7 @@ describe("End to End", function () {
     await tokenA.connect(holderA).delegate(holderA.address);
 
     await tokenB.mint(holderB.address, 100)
-    await tokenB.delegate(holderB.address);
+    await tokenB.connect(holderB).delegate(holderB.address);
 
     /*
     ================= Mint tokens to Governance contracts ===============
@@ -92,27 +99,28 @@ describe("End to End", function () {
     
     const approveCalldata = tokenA.interface.encodeFunctionData("approve", [
         swapper.address,
-        100
+        amountA
     ])
 
     const proposeCalldata = swapper.interface.encodeFunctionData("propose", [
         tokenA.address,
-        100,
+        amountA,
         governanceB.address,
         tokenB.address,
-        30,
+        amountB,
         0
     ])
 
     calldatas = [approveCalldata, proposeCalldata];
-    let targets = [tokenA.address, swapper.address];
-    let values = [0, 0];
+    targets = [tokenA.address, swapper.address];
+    values = [0, 0];
+    description = "Token swap #1";
 
     const tx = await governanceA.connect(holderA).propose(
         targets,
         values,
         calldatas,
-        "Swap some tokens"
+        description
     );
     const receipt = await tx.wait();
     proposalId = receipt.events[0].args.proposalId;
@@ -122,12 +130,102 @@ describe("End to End", function () {
   })
 
   it('Should cast a vote on the proposal', async () => {
-      console.log("Proposal id: ", proposalId);
-      //expect(await governanceA.state(proposalId)).to.eql(ProposalState.Active)
-    //   console.log("Proposal state: ", await governanceA.state(proposalId));
+
+      console.log("Proposal state: ", await governanceA.state(proposalId));
       await governanceA.connect(holderA).castVote(proposalId, 1)
 
-      expect((await governanceA.proposalVotes(proposalId)).forVotes.toString()).to.equal('1');
+      expect((await governanceA.proposalVotes(proposalId)).forVotes.toString()).to.equal('100');
   })
+
+  it('Should execute proposal after voting period', async () => {
+    console.log("Proposal state: ", await governanceA.state(proposalId));
+    const descriptionHash = ethers.utils.id(description);
+  
+    for (_ of Array(4)) {
+        await hre.ethers.provider.send('evm_mine')
+    }
+
+    await governanceA.execute(
+        targets,
+        values,
+        calldatas,
+        descriptionHash);
+
+    expect(await governanceA.state(proposalId)).to.eql(ProposalState.Executed);
+
+  })
+
+  it('Should have created a deal and deposited tokens into Swapper', async () => {
+      
+    expect(await tokenA.balanceOf(swapper.address)).to.equal(amountA);
+    let filter = swapper.filters.DealCreated()
+    let events = await swapper.queryFilter(filter);
+    expect(events.length).to.equal(1);
+  })
+
+  it("Should create new proposal on GovernanceB", async () => { 
+    
+    const approveCalldata = tokenB.interface.encodeFunctionData("approve", [
+        swapper.address,
+        amountB
+    ])
+
+    const acceptCalldata = swapper.interface.encodeFunctionData("approve", [
+        0
+    ])
+
+    calldatas = [approveCalldata, acceptCalldata];
+    targets = [tokenB.address, swapper.address];
+    values = [0, 0];
+    description = "Token swap #1";
+
+    const tx = await governanceB.connect(holderB).propose(
+        targets,
+        values,
+        calldatas,
+        description
+    );
+    const receipt = await tx.wait();
+    proposalId = receipt.events[0].args.proposalId;
+
+    expect((await governanceA.proposalVotes(proposalId)).forVotes.toString()).to.equal('0');
+
+  })
+
+    it('Should cast a vote on the proposal', async () => {
+        await governanceB.connect(holderB).castVote(proposalId, 1)
+
+        expect((await governanceB.proposalVotes(proposalId)).forVotes.toString()).to.equal('100');
+    })
+
+    it('Should execute proposal after voting period', async () => {
+        const descriptionHash = ethers.utils.id(description);
+    
+        for (_ of Array(4)) {
+            await hre.ethers.provider.send('evm_mine')
+        }
+
+        await governanceB.execute(
+            targets,
+            values,
+            calldatas,
+            descriptionHash);
+
+        expect(await governanceB.state(proposalId)).to.eql(ProposalState.Executed);
+
+    })
+
+    it('Should have deposited tokens into Swapper', async () => {
+        expect(await tokenB.balanceOf(swapper.address)).to.equal(amountB);
+      })
+
+    it('Should be able to claim after vesting period', async () => {
+        await swapper.claim(0);
+
+        expect(await tokenB.balanceOf(governanceA.address)).to.equal(amountB);
+        expect(await tokenA.balanceOf(governanceB.address)).to.equal(amountA);
+    })
+
+
 
 });

@@ -9,19 +9,19 @@ contract GovernanceB is Governor, GovernorCountingSimple, GovernorVotes {
     constructor(IVotes _token) Governor("GovernorA") GovernorVotes(_token) {}
 
     function votingDelay() public pure override returns (uint256) {
-        return 1; // 1 block
+        return 0; // 1 block
     }
 
     function votingPeriod() public pure override returns (uint256) {
-        return 3; // 1 week
+        return 4; // 1 week
     }
 
     function quorum(uint256 blockNumber) public pure override returns (uint256) {
-        return 1e18;
+        return 1;
     }
 
     function proposalThreshold() public pure override returns (uint256) {
-        return 1e18;
+        return 1;
     }
 
     // The following functions are overrides required by Solidity.
