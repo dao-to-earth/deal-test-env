@@ -103,11 +103,14 @@ describe("End to End", function () {
     ])
 
     const proposeCalldata = swapper.interface.encodeFunctionData("propose", [
+        holderA.address,
         tokenA.address,
         amountA,
+        holderB.address,
         governanceB.address,
         tokenB.address,
         amountB,
+        0,
         0
     ])
 

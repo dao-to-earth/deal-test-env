@@ -6,22 +6,29 @@ interface ISwapper {
     enum Status {
         Pending,
         Approved,
-        Claimed
+        Claimed,
+        Canceled
     }
 
     event DealCreated(
-        address sender,
+        address proposer1,
+        address executor1,
         address token1, 
         uint256 amount1, 
-        address receiver, 
+        address proposer2,
+        address executor2, 
         address token2, 
-        uint256 amount2, 
-        uint256 vesting
+        uint256 amount2,
+        uint256 startDate,
+        uint256 vesting,
+        uint256 deadline
     );
 
-    event DealApproved(uint256 dealId, address caller);
+    event DealApproved(uint256 dealId, address executor, address proposer1, address proposer2);
 
-    event DealClaimed(uint256 dealId, address caller);
+    event DealClaimed(uint256 dealId, address executor, address proposer1, address proposer2);
+
+    event DealCanceled(uint256 dealId, address executor, address proposer1, address proposer2);
 
     /**
     * @dev Creates a new Deal after Transfer at address `token1` 
@@ -36,12 +43,15 @@ interface ISwapper {
     * Emits a {DealCreated} event.
     */
     function propose(
+        address proposer1,
         address token1, 
-        uint256 amount1, 
-        address receiver, 
+        uint256 amount1,
+        address proposer2, 
+        address account2, 
         address token2, 
         uint256 amount2, 
-        uint256 vesting
+        uint256 vesting,
+        uint256 deadline
     ) external returns(bool, uint256);
 
     /**
@@ -66,4 +76,16 @@ interface ISwapper {
     * Emits a {DealClaimed} event.
     */
     function claim(uint256 id) external returns (bool);
+
+    /**
+    * @dev Cancel the Deal proposal after the acceptance period is over. 
+    * This requires only the proposer to be the function caller and the 
+    * deal to be still pending which means not yet accepted by the other 
+    * stakeholder.
+    *
+    * Returns a boolean value indicating whether the operation succeeded.
+    *
+    * Emits a {DealCanceled} event.
+    */
+    function cancel(uint256 id) external returns (bool);
 }

@@ -14,7 +14,7 @@ async function main() {
     const TokenB = await hre.ethers.getContractFactory("TokenB");
     tokenB = await TokenB.deploy();
     await tokenB.deployed();
-    console.log("TokenA deployed to:", tokenB.address);
+    console.log("TokenB deployed to:", tokenB.address);
 
     const GovernanceA = await hre.ethers.getContractFactory("GovernanceA");
     governanceA = await GovernanceA.deploy(tokenA.address);
@@ -24,7 +24,7 @@ async function main() {
     const GovernanceB = await hre.ethers.getContractFactory("GovernanceB");
     governanceB = await GovernanceB.deploy(tokenB.address);
     await governanceB.deployed();
-    console.log("GovernanceB deployed to:", governanceA.address);
+    console.log("GovernanceB deployed to:", governanceB.address);
 
     const Swapper = await hre.ethers.getContractFactory("Swapper");
     swapper = await Swapper.deploy();
