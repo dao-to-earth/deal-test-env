@@ -11,7 +11,8 @@ npx hardhat node // start a local blockchain
 npx hardhat run scripts/deploy.js // deploy all the contracts to the local blockchain
 ```
 
-### Running the test suite
+### Want to gain a better understanding of a token swap deal lifecycle?
+Run the test suite which takes you through every step
 
 ```shell
 npx hardhat test
