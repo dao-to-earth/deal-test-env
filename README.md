@@ -12,7 +12,7 @@ npx hardhat run scripts/deploy.js // deploy all the contracts to the local block
 ```
 
 ### Want to gain a better understanding of a token swap deal lifecycle?
-Run the test suite which takes you through every step
+The test suite will take you through every step
 
 ```shell
 npx hardhat test
